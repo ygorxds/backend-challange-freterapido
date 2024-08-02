@@ -1,0 +1,52 @@
+# Build output
+bin/
+build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with -tags test
+*.test
+
+# Coverage reports
+coverage.out
+*.cover
+*.cov
+
+# Dependency directories
+vendor/
+Gopkg.lock
+Gopkg.toml
+package-lock.json
+node_modules/
+
+# Go module cache
+.go/
+.gomodcache/
+.gopath/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.tgz
+*.gz
+*.zip
+*.tar
+*.rar
+*.7z

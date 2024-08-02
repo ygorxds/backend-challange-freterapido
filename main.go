@@ -14,7 +14,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Estruturas para a API de Quote
+// Estrutura para consumir API de frete
 type Volume struct {
 	Amount             int     `json:"amount"`
 	AmountVolumes      int     `json:"amount_volumes"`
@@ -118,8 +118,13 @@ type QuoteResponse struct {
 		ZipcodeOrigin              int     `json:"zipcode_origin"`
 	} `json:"dispatchers"`
 }
+// fim da Estrutura para consumir API de frete
+
+//integração com o banco de dados
 
 var db *sql.DB
+
+//função principal
 
 func main() {
 	var err error
@@ -149,7 +154,7 @@ func main() {
 		return
 	}
 
-	// Definir rotas
+	//rotas
 	http.HandleFunc("/quote", PostQuoteHandler())
 	http.HandleFunc("/metrics", GetMetricsHandler())
 
@@ -164,12 +169,14 @@ func PostQuoteHandler() http.HandlerFunc {
 			return
 		}
 
-		// Decodificar dados da requisição
+		// Decodificar dados do body em json
 		var requestData QuoteRequest
 		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 			http.Error(w, "Erro ao decodificar o JSON: "+err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		//passando os headers de autorização
 
 		authHeader := r.Header.Get("Authorization")
 		platformCodeHeader := r.Header.Get("X-Platform-Code")
@@ -188,7 +195,7 @@ func PostQuoteHandler() http.HandlerFunc {
 		// Criar cliente HTTP com configuração TLS personalizada
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // Ignorar validação do certificado (não para produção)
+				InsecureSkipVerify: true, // Ignorei o certificado de segurança pois estamos usando protocolo Http e não Https
 			},
 		}
 		client := &http.Client{Transport: tr}
