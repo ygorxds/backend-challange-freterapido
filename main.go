@@ -20,13 +20,13 @@ type Recipient struct {
 	RegisteredNumber  string `json:"registered_number"`
 	StateInscription  string `json:"state_inscription"`
 	Country           string `json:"country"`
-	Zipcode           int    `json:"zipcode"` // Alterado para int
+	Zipcode           int    `json:"zipcode"`
 }
 
 type Volume struct {
 	Amount           int     `json:"amount"`
 	AmountVolumes    int     `json:"amount_volumes"`
-	Category         string  `json:"category"` // Mantido como string
+	Category         string  `json:"category"`
 	Sku              string  `json:"sku"`
 	Tag              string  `json:"tag"`
 	Description      string  `json:"description"`
@@ -42,7 +42,7 @@ type Volume struct {
 
 type Dispatcher struct {
 	RegisteredNumber string   `json:"registered_number"`
-	Zipcode          int      `json:"zipcode"` // Alterado para int
+	Zipcode          int      `json:"zipcode"`
 	TotalPrice       float64  `json:"total_price"`
 	Volumes          []Volume `json:"volumes"`
 }
@@ -91,6 +91,19 @@ func PostQuoteHandler() http.HandlerFunc {
 			return
 		}
 
+		// Obtendo valores dos cabeçalhos da requisição original
+		authHeader := r.Header.Get("Authorization")
+		platformCodeHeader := r.Header.Get("X-Platform-Code")
+		
+		if authHeader == "" {
+			http.Error(w, "Authorization header is required", http.StatusBadRequest)
+			return
+		}
+		if platformCodeHeader == "" {
+			http.Error(w, "X-Platform-Code header is required", http.StatusBadRequest)
+			return
+		}
+
 		// Chamada à API externa
 		url := "https://sp.freterapido.com/api/v3/quote/simulate"
 		client := &http.Client{
@@ -111,8 +124,8 @@ func PostQuoteHandler() http.HandlerFunc {
 			return
 		}
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer 1d52a9b6b78cf07b08586152459a5c90")
-		req.Header.Set("X-Platform-Code", "5AKVkHqCn")
+		req.Header.Set("Authorization", authHeader)
+		req.Header.Set("X-Platform-Code", platformCodeHeader)
 
 		resp, err := client.Do(req)
 		if err != nil {
