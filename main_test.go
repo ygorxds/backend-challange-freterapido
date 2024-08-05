@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,127 +12,171 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var db *sqlx.DB
+var dbTest *sqlx.DB
+
+// TestMain configura o ambiente de teste (banco de dados).
+func TestMain(m *testing.M) {
+	connStr := "user=admin password=admin dbname=frete sslmode=disable"
+	dbTest = sqlx.MustConnect("postgres", connStr)
+	defer dbTest.Close()
+
+	// Configurações necessárias no banco de dados para testes
+	setupTestDatabase()
+
+	code := m.Run()
+
+	os.Exit(code)
+}
+
+// Configuração do banco de dados de teste
+func setupTestDatabase() {
+	// Criar uma tabela de testes separada
+	createTableQuery := `
+    CREATE TABLE IF NOT EXISTS quotes_test (
+        id SERIAL PRIMARY KEY,
+        carrier TEXT,
+        service TEXT,
+        deadline TEXT,
+        price REAL
+    );
+    `
+	dbTest.MustExec(createTableQuery)
+}
 
 func TestPostQuoteHandler(t *testing.T) {
-	// Configurar a variável de ambiente
-	os.Setenv("DATABASE_URL", "postgres://usuario:usuario@url:porta/bdName?sslmode=disable") //por a url na hora de testar do dotenv
-
-	// Abrir conexão com o banco de dados
-	var err error
-	connStr := os.Getenv("DATABASE_URL")
-	db, err = sqlx.Open("postgres", connStr)
-	if err != nil {
-		t.Fatalf("Error opening database: %v", err)
-	}
-	defer db.Close()
-
-	// Criar tabela se não existir
-	createTableQuery := `
-	CREATE TABLE IF NOT EXISTS quotes (
-		id SERIAL PRIMARY KEY,
-		carrier TEXT,
-		service TEXT,
-		deadline TEXT,
-		price REAL
-	);`
-	_, err = db.Exec(createTableQuery)
-	if err != nil {
-		t.Fatalf("Error creating table: %v", err)
-	}
-
-	// criando dados fakes mokkados (adicionar dados reais, removi para evitar expor no projeto público)
-	quoteRequest := QuoteRequest{
+	// Dados de entrada simulados para a rota /quote
+	requestBody := QuoteRequest{
 		Shipper: struct {
-			RegisteredNumber string "json:\"registered_number\""
-			Token            string "json:\"token\""
-			PlatformCode     string "json:\"platform_code\""
+			RegisteredNumber string `json:"registered_number"`
+			Token            string `json:"token"`
+			PlatformCode     string `json:"platform_code"`
 		}{
-			RegisteredNumber: "123456789",
-			Token:            "token123",
-			PlatformCode:     "platform123",
+			RegisteredNumber: "25438296000158",
+			Token:            "1d52a9b6b78cf07b08586152459a5c90",
+			PlatformCode:     "5AKVkHqCn",
 		},
 		Recipient: struct {
-			Type             int    "json:\"type\""
-			RegisteredNumber string "json:\"registered_number\""
-			StateInscription string "json:\"state_inscription\""
-			Country          string "json:\"country\""
-			Zipcode          int    "json:\"zipcode\""
+			Type             int    `json:"type"`
+			RegisteredNumber string `json:"registered_number"`
+			StateInscription string `json:"state_inscription"`
+			Country          string `json:"country"`
+			Zipcode          int    `json:"zipcode"`
 		}{
-			Type:             1,
-			RegisteredNumber: "987654321",
-			StateInscription: "insc123",
+			Type:             0,
+			RegisteredNumber: "25438296000158",
+			StateInscription: "12345678",
 			Country:          "BR",
-			Zipcode:          12345678,
+			Zipcode:          29161376,
 		},
 		Dispatchers: []Dispatcher{
 			{
-				RegisteredNumber: "123456789",
-				Zipcode:          12345678,
+				RegisteredNumber: "25438296000158",
+				Zipcode:          29161376,
 				TotalPrice:       100.0,
 				Volumes: []Volume{
 					{
-						Amount:       1,
-						Sku:          "sku123",
-						Description:  "desc123",
-						Height:       10.0,
-						Width:        10.0,
-						Length:       10.0,
-						UnitaryPrice: 50.0,
-						UnitaryWeight: 1.0,
+						Amount:        1,
+						AmountVolumes: 1,
+						Category:      "7",
+						Sku:           "abc-teste-123",
+						Tag:           "tag1",
+						Description:   "Descrição do volume",
+						Height:        0.2,
+						Width:         0.2,
+						Length:        0.2,
+						UnitaryPrice:  50.0,
+						UnitaryWeight: 5.0,
+						Consolidate:   false,
+						Overlaid:      false,
+						Rotate:        false,
 					},
 				},
 			},
 		},
-		Channel:        "channel123",
-		Filter:         1,
-		Limit:          1,
-		Identification: "id123",
+		Channel:        "",
+		Filter:         0,
+		Limit:          0,
+		Identification: "",
 		Reverse:        false,
-		SimulationType: []int{1},
+		SimulationType: []int{0},
 		Returns: struct {
-			Composition  bool "json:\"composition\""
-			Volumes      bool "json:\"volumes\""
-			AppliedRules bool "json:\"applied_rules\""
+			Composition  bool `json:"composition"`
+			Volumes      bool `json:"volumes"`
+			AppliedRules bool `json:"applied_rules"`
 		}{
-			Composition:  true,
-			Volumes:      true,
-			AppliedRules: true,
+			Composition:  false,
+			Volumes:      false,
+			AppliedRules: false,
 		},
 	}
 
-	reqBody, err := json.Marshal(quoteRequest)
+	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
-		t.Fatalf("Error marshaling request body: %v", err)
+		t.Fatalf("Erro ao codificar JSON: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", "/quote", bytes.NewBuffer(reqBody))
+	// Cria uma requisição POST para a rota /quote
+	req, err := http.NewRequest("POST", "/quote", bytes.NewBuffer(jsonBody))
 	if err != nil {
-		t.Fatalf("Error creating request: %v", err)
+		t.Fatalf("Erro ao criar requisição: %v", err)
 	}
 
+	req.Header.Set("Authorization", "Bearer 1d52a9b6b78cf07b08586152459a5c90")
+	req.Header.Set("X-Platform-Code", "5AKVkHqCn")
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer token123")
-	req.Header.Set("X-Platform-Code", "platform123")
 
+	// Cria um ResponseRecorder para capturar a resposta
 	rr := httptest.NewRecorder()
-	handler := PostQuoteHandler(db) // Pasando o DB como argumento
-
+	handler := PostQuoteHandler(dbTest)
 	handler.ServeHTTP(rr, req)
 
+	// Verifica o status da resposta
 	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+		t.Errorf("Status code esperado %v, mas obteve %v", http.StatusOK, status)
 	}
 
-	var response QuoteResponse
-	err = json.NewDecoder(rr.Body).Decode(&response)
+	// Verifica se a resposta JSON está correta
+	var response map[string]interface{}
+	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
+		t.Fatalf("Erro ao decodificar resposta: %v", err)
+	}
+
+	if _, ok := response["carrier"]; !ok {
+		t.Errorf("Resposta esperada contém 'carrier', mas não foi encontrado")
+	}
+
+	// Insira os dados de teste na tabela de teste
+	_, err = dbTest.Exec("INSERT INTO quotes_test (carrier, service, deadline, price) VALUES ($1, $2, $3, $4)",
+		"EXPRESSO FR", "Rodoviário", "3", 17.00)
 	if err != nil {
-		t.Fatalf("Error decoding response body: %v", err)
+		t.Errorf("Erro ao inserir dados de teste na tabela quotes_test: %v", err)
+	}
+}
+
+func TestGetMetricsHandler(t *testing.T) {
+	// Cria uma requisição GET para a rota /metrics
+	req, err := http.NewRequest("GET", "/metrics", nil)
+	if err != nil {
+		t.Fatalf("Erro ao criar requisição: %v", err)
 	}
 
-	//verificações adicioneis
-	if len(response.Dispatchers) == 0 {
-		t.Errorf("Expected dispatchers in response but got none")
+	// Cria um ResponseRecorder para capturar a resposta
+	rr := httptest.NewRecorder()
+	handler := GetMetricsHandler(dbTest)
+	handler.ServeHTTP(rr, req)
+
+	// Verifica o status da resposta
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Status code esperado %v, mas obteve %v", http.StatusOK, status)
+	}
+
+	// Verifica se a resposta JSON não está vazia
+	var metricsResponse map[string]interface{}
+	if err := json.NewDecoder(rr.Body).Decode(&metricsResponse); err != nil {
+		t.Fatalf("Erro ao decodificar resposta: %v", err)
+	}
+
+	if len(metricsResponse) == 0 {
+		t.Errorf("Resposta esperada não deve estar vazia")
 	}
 }

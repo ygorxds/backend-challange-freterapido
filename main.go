@@ -2,41 +2,41 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
-	"crypto/tls"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
 // Estrutura para consumir API de frete
 type Volume struct {
-	Amount             int     `json:"amount"`
-	AmountVolumes      int     `json:"amount_volumes"`
-	Category           string  `json:"category"`
-	Sku                string  `json:"sku"`
-	Tag                string  `json:"tag"`
-	Description        string  `json:"description"`
-	Height             float64 `json:"height"`
-	Width              float64 `json:"width"`
-	Length             float64 `json:"length"`
-	UnitaryPrice       float64 `json:"unitary_price"`
-	UnitaryWeight      float64 `json:"unitary_weight"`
-	Consolidate        bool    `json:"consolidate"`
-	Overlaid           bool    `json:"overlaid"`
-	Rotate             bool    `json:"rotate"`
+	Amount        int     `json:"amount"`
+	AmountVolumes int     `json:"amount_volumes"`
+	Category      string  `json:"category"`
+	Sku           string  `json:"sku"`
+	Tag           string  `json:"tag"`
+	Description   string  `json:"description"`
+	Height        float64 `json:"height"`
+	Width         float64 `json:"width"`
+	Length        float64 `json:"length"`
+	UnitaryPrice  float64 `json:"unitary_price"`
+	UnitaryWeight float64 `json:"unitary_weight"`
+	Consolidate   bool    `json:"consolidate"`
+	Overlaid      bool    `json:"overlaid"`
+	Rotate        bool    `json:"rotate"`
 }
 
 type Dispatcher struct {
-	RegisteredNumber  string  `json:"registered_number"`
-	Zipcode           int     `json:"zipcode"`
-	TotalPrice        float64 `json:"total_price"`
-	Volumes           []Volume `json:"volumes"`
+	RegisteredNumber string   `json:"registered_number"`
+	Zipcode          int      `json:"zipcode"`
+	TotalPrice       float64  `json:"total_price"`
+	Volumes          []Volume `json:"volumes"`
 }
 
 type QuoteRequest struct {
@@ -46,68 +46,68 @@ type QuoteRequest struct {
 		PlatformCode     string `json:"platform_code"`
 	} `json:"shipper"`
 	Recipient struct {
-		Type              int    `json:"type"`
-		RegisteredNumber  string `json:"registered_number"`
-		StateInscription  string `json:"state_inscription"`
-		Country           string `json:"country"`
-		Zipcode           int    `json:"zipcode"`
+		Type             int    `json:"type"`
+		RegisteredNumber string `json:"registered_number"`
+		StateInscription string `json:"state_inscription"`
+		Country          string `json:"country"`
+		Zipcode          int    `json:"zipcode"`
 	} `json:"recipient"`
-	Dispatchers       []Dispatcher `json:"dispatchers"`
-	Channel           string       `json:"channel"`
-	Filter            int          `json:"filter"`
-	Limit             int          `json:"limit"`
-	Identification    string       `json:"identification"`
-	Reverse           bool         `json:"reverse"`
-	SimulationType    []int        `json:"simulation_type"`
-	Returns           struct {
-		Composition      bool `json:"composition"`
-		Volumes          bool `json:"volumes"`
-		AppliedRules     bool `json:"applied_rules"`
+	Dispatchers    []Dispatcher `json:"dispatchers"`
+	Channel        string       `json:"channel"`
+	Filter         int          `json:"filter"`
+	Limit          int          `json:"limit"`
+	Identification string       `json:"identification"`
+	Reverse        bool         `json:"reverse"`
+	SimulationType []int        `json:"simulation_type"`
+	Returns        struct {
+		Composition  bool `json:"composition"`
+		Volumes      bool `json:"volumes"`
+		AppliedRules bool `json:"applied_rules"`
 	} `json:"returns"`
 }
 
 type Carrier struct {
-	Carrier        string  `json:"carrier"`
-	Service        string  `json:"service"`
-	Deadline       string  `json:"deadline"`
-	Price          float64 `json:"price"`
+	Carrier  string  `json:"carrier"`
+	Service  string  `json:"service"`
+	Deadline string  `json:"deadline"`
+	Price    float64 `json:"price"`
 }
 
 type QuoteResponse struct {
 	Dispatchers []struct {
-		ID                  string `json:"id"`
-		Offers              []struct {
+		ID     string `json:"id"`
+		Offers []struct {
 			Carrier struct {
-				CompanyName        string `json:"company_name"`
-				Logo               string `json:"logo"`
-				Name               string `json:"name"`
-				Reference          int    `json:"reference"`
-				RegisteredNumber   string `json:"registered_number"`
-				StateInscription   string `json:"state_inscription"`
+				CompanyName      string `json:"company_name"`
+				Logo             string `json:"logo"`
+				Name             string `json:"name"`
+				Reference        int    `json:"reference"`
+				RegisteredNumber string `json:"registered_number"`
+				StateInscription string `json:"state_inscription"`
 			} `json:"carrier"`
 			CarrierOriginalDeliveryTime struct {
-				Days           int    `json:"days"`
-				EstimatedDate  string `json:"estimated_date"`
+				Days          int    `json:"days"`
+				EstimatedDate string `json:"estimated_date"`
 			} `json:"carrier_original_delivery_time"`
-			CostPrice                   float64 `json:"cost_price"`
-			DeliveryTime                struct {
-				Days           int    `json:"days"`
-				EstimatedDate  string `json:"estimated_date"`
+			CostPrice    float64 `json:"cost_price"`
+			DeliveryTime struct {
+				Days          int    `json:"days"`
+				EstimatedDate string `json:"estimated_date"`
 			} `json:"delivery_time"`
-			Expiration                  string `json:"expiration"`
-			FinalPrice                  float64 `json:"final_price"`
-			HomeDelivery                bool   `json:"home_delivery"`
-			Identifier                  string `json:"identifier"`
-			Modal                       string `json:"modal"`
-			Offer                       int    `json:"offer"`
-			OriginalDeliveryTime        struct {
-				Days           int    `json:"days"`
-				EstimatedDate  string `json:"estimated_date"`
+			Expiration           string  `json:"expiration"`
+			FinalPrice           float64 `json:"final_price"`
+			HomeDelivery         bool    `json:"home_delivery"`
+			Identifier           string  `json:"identifier"`
+			Modal                string  `json:"modal"`
+			Offer                int     `json:"offer"`
+			OriginalDeliveryTime struct {
+				Days          int    `json:"days"`
+				EstimatedDate string `json:"estimated_date"`
 			} `json:"original_delivery_time"`
-			Service                     string `json:"service"`
-			ServiceCode                 string `json:"service_code"`
-			SimulationType              int    `json:"simulation_type"`
-			Weights                     struct {
+			Service        string `json:"service"`
+			ServiceCode    string `json:"service_code"`
+			SimulationType int    `json:"simulation_type"`
+			Weights        struct {
 				Real float64 `json:"real"`
 			} `json:"weights"`
 		} `json:"offers"`
@@ -118,20 +118,15 @@ type QuoteResponse struct {
 		ZipcodeOrigin              int     `json:"zipcode_origin"`
 	} `json:"dispatchers"`
 }
-// fim da Estrutura para consumir API de frete
 
-//integração com o banco de dados
-
-var db *sql.DB
-
-//função principal
+var db *sqlx.DB
 
 func main() {
 	var err error
 
 	// Abrir conexão com o banco de dados
 	connStr := os.Getenv("DATABASE_URL")
-	db, err = sql.Open("postgres", connStr)
+	db, err = sqlx.Connect("postgres", connStr)
 	if err != nil {
 		fmt.Println("Error opening database:", err)
 		return
@@ -154,30 +149,29 @@ func main() {
 		return
 	}
 
-	//rotas
-	http.HandleFunc("/quote", PostQuoteHandler())
-	http.HandleFunc("/metrics", GetMetricsHandler())
+	// Rotas
+	http.HandleFunc("/quote", PostQuoteHandler(db))
+	http.HandleFunc("/metrics", GetMetricsHandler(db))
 
 	fmt.Println("Servidor rodando na porta 8080")
 	http.ListenAndServe(":8080", nil)
 }
 
-func PostQuoteHandler() http.HandlerFunc {
+func PostQuoteHandler(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
 			return
 		}
 
-		// Decodificar dados do body em json
+		// Decodificar dados do body em JSON
 		var requestData QuoteRequest
 		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 			http.Error(w, "Erro ao decodificar o JSON: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		//passando os headers de autorização
-
+		// Passando os headers de autorização
 		authHeader := r.Header.Get("Authorization")
 		platformCodeHeader := r.Header.Get("X-Platform-Code")
 
@@ -192,10 +186,10 @@ func PostQuoteHandler() http.HandlerFunc {
 
 		url := "https://sp.freterapido.com/api/v3/quote/simulate"
 
-		// Criar cliente HTTP com configuração TLS personalizada
+		// Criando cliente HTTP com configuração TLS personalizada
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // Ignorei o certificado de segurança pois estamos usando protocolo Http e não Https
+				InsecureSkipVerify: true, // Ignora o certificado de segurança pois estamos usando protocolo Http e não Https
 			},
 		}
 		client := &http.Client{Transport: tr}
@@ -234,12 +228,12 @@ func PostQuoteHandler() http.HandlerFunc {
 			return
 		}
 
-		// Criar estrutura para armazenar a resposta no formato desejado
+		// Criar estrutura para armazenar a resposta dos fretes do metodo post
 		var carriers []Carrier
 		for _, dispatcher := range apiResponse.Dispatchers {
 			for _, offer := range dispatcher.Offers {
 				carriers = append(carriers, Carrier{
-					Carrier:     offer.Carrier.Name,
+					Carrier:  offer.Carrier.Name,
 					Service:  offer.Service,
 					Deadline: strconv.Itoa(offer.DeliveryTime.Days),
 					Price:    offer.FinalPrice,
@@ -264,7 +258,8 @@ func PostQuoteHandler() http.HandlerFunc {
 	}
 }
 
-func GetMetricsHandler() http.HandlerFunc {
+// função unica e exclusivamente pra retornar os resultados anteriores
+func GetMetricsHandler(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
@@ -287,7 +282,7 @@ func GetMetricsHandler() http.HandlerFunc {
 				return
 			}
 			quote := map[string]interface{}{
-				"carrier":    carrier,
+				"carrier":  carrier,
 				"service":  service,
 				"deadline": deadline,
 				"price":    price,

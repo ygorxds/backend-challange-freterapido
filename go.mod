@@ -1,4 +1,4 @@
-module your_module_name
+module freteRapidoAPI
 
 go 1.16
 
