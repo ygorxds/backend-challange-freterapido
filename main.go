@@ -222,8 +222,18 @@ func PostQuoteHandler(db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
+		// Leitura completa do corpo da resposta
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			http.Error(w, "Erro ao ler o corpo da resposta: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Logando a resposta da API externa
+		fmt.Println("Resposta da API externa:", string(body))
+
 		var apiResponse QuoteResponse
-		if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		if err := json.Unmarshal(body, &apiResponse); err != nil {
 			http.Error(w, "Erro ao decodificar a resposta da API: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -248,6 +258,9 @@ func PostQuoteHandler(db *sqlx.DB) http.HandlerFunc {
 				}
 			}
 		}
+
+		// Logando o conteúdo de carriers antes de responder
+		fmt.Printf("Dados de carriers: %+v\n", carriers)
 
 		response := map[string]interface{}{
 			"carrier": carriers,
