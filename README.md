@@ -37,3 +37,5 @@ Para testar, execute o seguinte comando:
 
 ```bash```
 go test
+
+Video de como rodar: https://www.loom.com/share/bda0b610fc18451bb0feffa4f0a52b87
