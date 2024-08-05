@@ -27,7 +27,7 @@ A API de Cotações de Frete oferece os seguintes recursos:
 
 Para configurar e iniciar o projeto, execute o seguinte comando:
 
-```bash
+```bash ```
 docker-compose up --build
 
 
@@ -35,5 +35,5 @@ docker-compose up --build
 
 Para testar, execute o seguinte comando:
 
-```bash
+```bash```
 go test
